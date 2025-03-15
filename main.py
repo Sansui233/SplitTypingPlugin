@@ -118,6 +118,10 @@ class MyPlugin(BasePlugin):
         group_id = ctx.event.launcher_id
         msg = ctx.event.text_message
 
+        # 设置默认值
+        if group_id not in self.split_enabled:
+            self.split_enabled[group_id] = True
+
         # 处理开关命令
         if msg == "开启分段":
             self.split_enabled[group_id] = True
