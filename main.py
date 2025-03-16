@@ -141,21 +141,6 @@ class MyPlugin(BasePlugin):
         lock_key = f"{chat_type}_{chat_id}"
         return self.typing_locks[lock_key]
 
-    async def simulate_typing(self, ctx: EventContext, chat_type: str, chat_id: str, text: str):
-        """模拟打字效果的延时"""
-        # 获取此对话的锁
-        self.ap.logger.info(f"[%%] 模拟打字等待锁")
-        lock = await self.get_chat_lock(chat_type, chat_id)
-
-        # 等待获取锁
-        async with lock:
-            # 根据文本长度计算延时
-            typing_delay = len(text) * self.char_delay
-            # 发送完整消息
-            await ctx.send_message(chat_type, chat_id, [Plain(text)])
-            # 等待打字延时
-            await asyncio.sleep(typing_delay)
-
     # 处理大模型的回复
     @handler(NormalMessageResponded)
     async def normal_message_responded(self, ctx: EventContext):
@@ -167,26 +152,20 @@ class MyPlugin(BasePlugin):
             self.ap.logger.info(f"[%%] 不分段")
             return
 
-        self.ap.logger.info(f"[%%] to be split...")
         # 获取大模型的回复文本
         response_text = ctx.event.response_text
-        self.ap.logger.info("[%%] content: {}".format(response_text))
+        self.ap.logger.info("[%%] content to be split: {}".format(response_text))
 
         # 获取此对话的锁
-        self.ap.logger.info("[%%] 回复时等待锁")
         lock = await self.get_chat_lock(chat_type, chat_id)
 
         # 等待获取锁
         async with lock:
-            self.ap.logger.info("[%%] 获取锁")
 
             # 如果文本长度超过最大分段长度，直接发送不分段
             if len(response_text) > self.max_split_length:
                 self.ap.logger.info(f"[分段发送] 文本长度({len(response_text)})超过最大限制({self.max_split_length})，将不进行分段")
-                # 模拟整体打字延时并发送
-                await ctx.send_message(chat_type, chat_id, [Plain(response_text)])
-                # await self.simulate_typing(ctx, chat_type, chat_id, response_text)
-                self.ap.logger.info("[%%] 释放锁")
+                # return 自动发送
                 return
 
             # 分割文本
@@ -209,7 +188,6 @@ class MyPlugin(BasePlugin):
                     # 如果不是最后一段，添加段落间停顿
                     if i < len(parts):
                         await asyncio.sleep(self.segment_pause)
-            self.ap.logger.info("[%%] 释放锁")
 
     # 插件卸载时触发
     def __del__(self):
