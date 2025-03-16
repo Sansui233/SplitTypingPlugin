@@ -30,7 +30,7 @@ class MyPlugin(BasePlugin):
                 settings = config.get('typing_settings', {})
                 self.char_delay = settings.get('char_delay', 0.1)  # 每个字符的延迟
                 self.segment_pause = settings.get('segment_pause', 0.5)  # 段落间停顿
-                self.max_split_length = settings.get('max_split_length', 50)  # 最大分段长度
+                self.max_split_length = settings.get('max_split_length', 50)  # 最 大分段长度
         except Exception as e:
             # 使用默认值
             self.char_delay = 0.1
@@ -58,12 +58,12 @@ class MyPlugin(BasePlugin):
 
         for i, char in enumerate(text):
             # TODO 括号逻辑要判断 index
-            if char in ['(','（']:
+            if char in ['(','（','"','“']:
                 in_parentheses = True
                 if current.strip():
                     segments.append(current.strip())
                 current = char
-            elif char in [')','）']:
+            elif char in [')','）','"','”']:
                 in_parentheses = False
                 current += char
                 #segments.append(current.strip())
@@ -77,7 +77,7 @@ class MyPlugin(BasePlugin):
                     segments.append(current.strip())
                     current = ""
                 # 间隔分段
-                if not in_parentheses and len(current) >= 15 and char in interval_punctuation:
+                if not in_parentheses and len(current) > 15 and char in interval_punctuation:
                     segments.append(current.strip())
                     current = ""
 
@@ -141,6 +141,20 @@ class MyPlugin(BasePlugin):
         lock_key = f"{chat_type}_{chat_id}"
         return self.typing_locks[lock_key]
 
+    async def simulate_typing(self, ctx: EventContext, chat_type: str, chat_id: str, text: str):
+        """模拟打字效果的延时"""
+        # 获取此对话的锁
+        lock = await self.get_chat_lock(chat_type, chat_id)
+
+        # 等待获取锁
+        async with lock:
+            # 根据文本长度计算延时
+            typing_delay = len(text) * self.char_delay
+            # 发送完整消息
+            await ctx.send_message(chat_type, chat_id, [Plain(text)])
+            # 等待打字延时
+            await asyncio.sleep(typing_delay)
+
     # 处理大模型的回复
     @handler(NormalMessageResponded)
     async def normal_message_responded(self, ctx: EventContext):
@@ -154,18 +168,20 @@ class MyPlugin(BasePlugin):
 
         # 获取大模型的回复文本
         response_text = ctx.event.response_text
-        self.ap.logger.info("[%%] content to be split: {}".format(response_text))
+        self.ap.logger.info(f"[%%] content: {response_text}")
 
         # 获取此对话的锁
         lock = await self.get_chat_lock(chat_type, chat_id)
 
         # 等待获取锁
         async with lock:
-
             # 如果文本长度超过最大分段长度，直接发送不分段
+
             if len(response_text) > self.max_split_length:
                 self.ap.logger.info(f"[分段发送] 文本长度({len(response_text)})超过最大限制({self.max_split_length})，将不进行分段")
-                # return 自动发送
+                # 模拟整体打字延时并发送
+                # await ctx.send_message(chat_type, chat_id, [Plain(response_text)])
+                # await self.simulate_typing(ctx, chat_type, chat_id, response_text)
                 return
 
             # 分割文本
@@ -188,6 +204,15 @@ class MyPlugin(BasePlugin):
                     # 如果不是最后一段，添加段落间停顿
                     if i < len(parts):
                         await asyncio.sleep(self.segment_pause)
+
+    # 处理群聊 prompt
+    @handler(PromptPreProcessing)
+    async def prompt_pre_processing(self, ctx: EventContext):
+        self.ap.logger.info(f"[%%] session_name: {ctx.event.session_name}")
+        self.ap.logger.info(f"[%%] default_prompt: {ctx.event.default_prompt}")
+        self.ap.logger.info(f"[%%] prompt: {ctx.event.prompt}")
+
+        return
 
     # 插件卸载时触发
     def __del__(self):
