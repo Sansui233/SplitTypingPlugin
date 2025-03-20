@@ -5,4 +5,4 @@ typing_settings:
   # 每段之间的额外停顿时间（秒）
   segment_pause: 0.5
   # 最大分段长度，超过此长度将不进行分段
-  max_split_length: 50 
+  max_split_length: 75
