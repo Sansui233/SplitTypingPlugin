@@ -41,6 +41,9 @@ class MyPlugin(BasePlugin):
                 config = yaml.safe_load(f)
                 settings = config.get("typing_settings", {})
                 self.char_delay = settings.get("char_delay", 0.1)  # 每个字符的延迟
+                self.segment_delay_max = settings.get(
+                    "segment_delay_max", 10
+                )  # 段落最大延迟
                 self.segment_pause = settings.get("segment_pause", 0.5)  # 段落间停顿
                 self.max_split_length = settings.get(
                     "max_split_length", 50
@@ -233,6 +236,11 @@ class MyPlugin(BasePlugin):
                     )
                     # 模拟打字延时并发送
                     typing_delay = len(part) * self.char_delay
+                    typing_delay = (
+                        self.segment_delay_max
+                        if typing_delay > self.segment_delay_max
+                        else typing_delay
+                    )
                     await ctx.send_message(
                         chat_type, chat_id, MessageChain([Plain(part)])
                     )
