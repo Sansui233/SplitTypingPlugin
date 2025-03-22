@@ -18,6 +18,7 @@ from pkg.plugin.events import (  # 导入事件类
     NormalMessageResponded,
     PersonNormalMessageReceived,
 )
+from plugins.SplitTypingPlugin.split import SplitText
 
 
 # 注册插件
@@ -25,13 +26,14 @@ from pkg.plugin.events import (  # 导入事件类
     name="SplitTypingPlugin",  # 英文名
     description="模拟人类打字习惯的消息分段发送插件",  # 中文描述
     version="0.1.1",
-    author="小馄饨",
+    author="小馄饨, Sansui233",
 )
 class MyPlugin(BasePlugin):
     # 插件加载时触发
     def __init__(self, host: APIHost):
         self.split_enabled = {}  # 用字典存储每个用户的分段状态
         self.typing_locks = defaultdict(asyncio.Lock)  # 每个对话的打字锁
+        self.split_engine = SplitText()
 
         # 加载配置文件
 
@@ -61,54 +63,7 @@ class MyPlugin(BasePlugin):
         pass
 
     def split_text(self, text: str) -> list:
-        # 先处理括号内的内容
-        segments = []
-        current = ""
-        in_parentheses = False
-
-        # 需要删除的标点符号（包括冒号）
-        skip_punctuation = ["，", "。", ",", ".", ":", "：", "\n"]
-        # 作为分段标记的标点符号
-        split_punctuation = ["？", "！", "?", "!", "~", "〜", "……"]
-
-        # 作为分段标记，但要超过一定长度才分段
-        interval_punctuation = ["…"]
-
-        for i, char in enumerate(text):
-            # TODO 括号逻辑要判断 index
-
-            if char in ["(", "（", '"', "“"]:
-                in_parentheses = True
-                if current.strip():
-                    segments.append(current.strip())
-                current = char
-            elif char in [")", "）", '"', "”"]:
-                in_parentheses = False
-                current += char
-                # segments.append(current.strip())
-                # current = ""
-            elif char in skip_punctuation and not in_parentheses:
-                continue
-            else:
-                current += char
-                # 如果不在括号内且遇到分隔符，进行分段
-                if not in_parentheses and char in split_punctuation:
-                    segments.append(current.strip())
-                    current = ""
-                # 间隔分段
-                if (
-                    not in_parentheses
-                    and len(current) > 15
-                    and char in interval_punctuation
-                ):
-                    segments.append(current.strip())
-                    current = ""
-
-        # 处理最后剩余的文本
-        if current.strip():
-            segments.append(current.strip())
-
-        return [seg for seg in segments if seg.strip()]
+        return self.split_engine.split(text)
 
     # 当收到个人消息时触发
     @handler(PersonNormalMessageReceived)
