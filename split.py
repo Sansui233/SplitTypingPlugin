@@ -16,7 +16,7 @@ class SplitText:
         }
         self.all_pairs = {**self.quote_pairs, **self.bracket_pairs}
         self.reverse_pairs = {v: k for k, v in self.all_pairs.items()}
-        self.intermidiate_punc = [",", "…"]
+        self.intermidiate_punc = [",", "，", "…"]
         self.must_terminate_punc = [
             "。",
             "!",
@@ -26,7 +26,7 @@ class SplitText:
             "……",
             "\n",
         ]  # 长度为 1 或 2 的 str，因为 …… 有两个字符
-        self.terminate_punc = ["」", "』", "）", "；", ";"]
+        self.terminate_punc = ["」", "』", "；", ";", "）"]
 
         self.pair_stack = []
         self.current: str = ""
@@ -36,7 +36,7 @@ class SplitText:
     def pair_stack_depth(self) -> int:
         return len(self.pair_stack)
 
-    def update_pair_stack(self, char: str) -> None | str:
+    def update_pair_stack(self, char: str) -> None | int:
         if char in self.all_pairs:
             self.pair_stack.append(char)
             return None
@@ -46,8 +46,9 @@ class SplitText:
             for i in reversed(range(len(self.pair_stack))):
                 if self.pair_stack[i] == target:
                     # 删除匹配项及其之后的所有元素
+                    deleted = self.pair_stack[i:]
                     del self.pair_stack[i:]
-                    return target
+                    return len(deleted)
             return None
         else:
             return None
@@ -91,9 +92,15 @@ class SplitText:
         if len(text) == 1:
             return [text]
 
-        i = 0
+        # current seg state
         continuous_count = 0
         count_of_pairs_per_seg = 0
+
+        def rest_current_seg_state():
+            nonlocal continuous_count
+            continuous_count = 0
+            nonlocal count_of_pairs_per_seg
+            count_of_pairs_per_seg = 0
 
         for i in range(len(text) - 1):
             j = i + 1
@@ -111,12 +118,15 @@ class SplitText:
             # stage: update rule markers
             if char_i in self.must_terminate_punc:
                 must_terminate = True
+
             if i - 1 >= 0 and text[i - 1] + char_i in self.must_terminate_punc:
                 must_terminate = True
+
             if self.update_pair_stack(char_i):
                 count_of_pairs_per_seg += 1
             if self.pair_stack_depth() > 0:
                 is_in_quote_or_bracket = True
+
             if (
                 char_i in self.all_pairs
                 and count_of_pairs_per_seg > 0
@@ -127,6 +137,7 @@ class SplitText:
             ):
                 commit_last = True  # 一句话只出现一个括号对
                 count_of_pairs_per_seg = 0
+
             if self.is_punctuation(char_i) and self.is_punctuation(char_j):
                 is_continuous = True
                 continuous_count += 1
@@ -135,17 +146,21 @@ class SplitText:
 
             if char_i in self.intermidiate_punc:
                 intermediate_split = True
+
             if char_i in self.terminate_punc:
                 regular_split = True
 
             # stage: exe rules
             if must_terminate:
                 self.commit_break(char_i)
+                rest_current_seg_state()
             elif is_continuous or is_in_quote_or_bracket:
                 self.current += char_i  # don't split
             elif commit_last:
                 self.mv_current_to_segment()
+                rest_current_seg_state()
                 self.current += char_i
+
             elif intermediate_split:
                 if len(self.current) > self.max_length:
                     if continuous_count >= 3:  # 连续的标点符号，可能是... 或颜文字
@@ -153,12 +168,16 @@ class SplitText:
                         continuous_count = 0
                         self.current += char_i
                         self.mv_current_to_segment()
+                        rest_current_seg_state()
                     else:
                         self.commit_break(char_i)
+                        rest_current_seg_state()
                 else:
                     self.current += char_i  # don't split
             elif regular_split:
                 self.commit_break(char_i)
+                rest_current_seg_state()
+
             else:
                 self.current += char_i  # don't split
 
@@ -173,5 +192,5 @@ class SplitText:
 
 if __name__ == "__main__":
     split = SplitText()
-    test_text = "你好！（兴奋地说）我今天遇到了一个非常有趣的情况（兴奋地说）……你知道吗？就是那个（稍微停顿）我们之前讨论过的项目，突然有了意想不到的进展！这真的是……（微笑）太令人兴奋了！"
-    print(split.split(test_text))
+    test_text = "你好！（兴奋地说）我今天遇到了一个非常有趣的情况嘿嘿（^_^）你知道吗？就是那个…（稍微停顿）我们之前讨论过的项目，突然有了意想不到的进展！这真的是……（微笑）太令人兴奋了！"
+    print("\n".join(split.split(test_text)))
