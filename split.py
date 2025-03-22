@@ -159,7 +159,7 @@ class SplitText:
             # stage: exe rules
             if must_continue:
                 self.current += char_i
-            elif must_terminate:
+            elif must_terminate and not is_in_quote_or_bracket:
                 self.commit_break(char_i)
                 rest_current_seg_state()
             elif is_continuous or is_in_quote_or_bracket:
@@ -205,3 +205,4 @@ if __name__ == "__main__":
     print("\n".join(split.split(test_text)))
     print("\n".join(split.split("嗯.....?")))
     print("\n".join(split.split("嗯……?")))
+    print("\n".join(split.split("嗯……( >﹏<。)\n也 也许...")))
