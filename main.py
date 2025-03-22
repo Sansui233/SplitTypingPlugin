@@ -26,7 +26,7 @@ from plugins.SplitTypingPlugin.split import SplitText
     name="SplitTypingPlugin",  # 英文名
     description="模拟人类打字习惯的消息分段发送插件",  # 中文描述
     version="0.1.1",
-    author="小馄饨, Sansui233",
+    author="小馄饨,",
 )
 class MyPlugin(BasePlugin):
     # 插件加载时触发
