@@ -198,6 +198,18 @@ class SplitText:
 
         return result
 
+    def simple_split(self, text: str, sep: list[str] = ["\n"]) -> list[str]:
+        """只依赖换行符的分段"""
+        if not sep:
+            return [text.rstrip("。")]
+        pattern = "|".join([re.escape(s) for s in sep])
+        segments = re.split(pattern, text)
+
+        stripped_segments = [
+            segment.rstrip("。").rstrip("，").strip() for segment in segments
+        ]
+        return [s for s in stripped_segments if s]
+
 
 if __name__ == "__main__":
     split = SplitText()

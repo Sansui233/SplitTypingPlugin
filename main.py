@@ -50,6 +50,7 @@ class MyPlugin(BasePlugin):
                 self.max_split_length = settings.get(
                     "max_split_length", 50
                 )  # 最大分段长度
+                self.split_mode: str = settings.get("split_mode", "default")
         except Exception as e:
             # 使用默认值
             self.char_delay = 0.1
@@ -63,6 +64,9 @@ class MyPlugin(BasePlugin):
         pass
 
     def split_text(self, text: str) -> list:
+        if self.split_mode == "simple":
+            return self.split_engine.simple_split(text)
+        # default
         return self.split_engine.split(text)
 
     # 当收到个人消息时触发
@@ -163,14 +167,11 @@ class MyPlugin(BasePlugin):
         # 等待获取锁
         async with lock:
             # 如果文本长度超过最大分段长度，直接发送不分段
-
+            # simple 模式忽略此规则
             if len(response_text) > self.max_split_length:
                 self.ap.logger.info(
                     f"[分段发送] 文本长度({len(response_text)})超过最大限制({self.max_split_length})，将不进行分段\n"
                 )
-                # 模拟整体打字延时并发送
-                # await ctx.send_message(chat_type, chat_id, [Plain(response_text)])
-                # await self.simulate_typing(ctx, chat_type, chat_id, response_text)
                 return
 
             # 分割文本
