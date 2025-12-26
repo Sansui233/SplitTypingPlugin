@@ -3,50 +3,49 @@ kind: Plugin
 metadata:
   author: Sansui233
   name: SplitTyping-Rev
+  label: {"en_US": "Split Typing", "zh_Hans": "拆句打字"}
   repository: ''
   version: 0.1.0
   description:
     en_US: Split the message into short sentences to simulate typing time
     zh_Hans: 消息拆分为短句，模拟打字时间
-  label:
-    en_US: SplitTyping Rev
-    zh_Hans: 拆句打字
   icon: assets/icon.svg
 spec:
   config: 
     - name: split_mode
+      label: { "en_US": "Split Mode", "zh_Hans": "分段模式" }
       type: select
       options:
         - name: simple
-          label:
-            en_US: Simple
-            zh_Hans: 简单
+          label: { en_US: Simple, zh_Hans: 简单（按换行符） }
         - name: default
-          label:
-            en_US: Default
-            zh_Hans: 普通
+          label: { en_US: Default, zh_Hans: 默认（按标点） }
       description:
         en_US: Mode of splitting text
         zh_Hans: 分段模式
     - name: char_delay
+      label: { "en_US": "Character Delay", "zh_Hans": "字符延迟" }
       type: float
       default: 0.1
       description:
         en_US: Delay per character in seconds
         zh_Hans: 每个字符的延迟时间（秒）
     - name: segment_delay_max
+      label: { "en_US": "Max Segment Delay", "zh_Hans": "最大分段延迟" }
       type: float
       default: 2.0
       description:
         en_US: Maximum delay between segments in seconds
         zh_Hans: 分段之间的最大延迟时间（秒）
     - name: segment_pause
+      label: { "en_US": "Segment Pause", "zh_Hans": "分段间隔" }
       type: float
       default: 0.5
       description:
         en_US: Pause duration between segments in seconds
         zh_Hans: 分段之间的暂停时间（秒）
     - name: max_segment_length
+      label: { "en_US": "Max Segment Length", "zh_Hans": "最大分段长度" }
       type: int
       default: 50
       description:
