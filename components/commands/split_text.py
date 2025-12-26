@@ -2,7 +2,11 @@
 # Please refer to https://docs.langbot.app/en/plugin/dev/tutor.html for more details.
 from __future__ import annotations
 
+import logging
+import sys
 from typing import AsyncGenerator
+
+from anyio import Path
 
 from langbot_plugin.api.definition.components.command.command import Command, Subcommand
 from langbot_plugin.api.entities.builtin.command.context import (
@@ -10,15 +14,17 @@ from langbot_plugin.api.entities.builtin.command.context import (
     ExecuteContext,
 )
 
-from lib.state import get_state
-
 
 class SplitText(Command):
     async def initialize(self) -> None:
         await super().initialize()
 
+        from pkg.state import get_state
+
+        logger = logging.getLogger("split_typing_plugin")
+
         @self.subcommand(name="on", help="开启分段", usage="!split_text on", aliases=[])
-        async def send(
+        async def sendon(
             self, ctx: ExecuteContext
         ) -> AsyncGenerator[CommandReturn, None]:
             chat_type = ctx.event.launcher_type  # type: ignore
@@ -27,13 +33,14 @@ class SplitText(Command):
             )
 
             get_state().enable(chat_id)
+            logger.info(f"🧩SplitTyping {chat_id} 已开启分段发送。")
             yield CommandReturn(text=f"已开启分段发送。")
 
         # 关闭分段
         @self.subcommand(
             name="off", help="关闭分段", usage="!split_text off", aliases=[]
         )
-        async def send(
+        async def sendoff(
             self, ctx: ExecuteContext
         ) -> AsyncGenerator[CommandReturn, None]:
             chat_type = ctx.event.launcher_type  # type: ignore
@@ -42,4 +49,5 @@ class SplitText(Command):
             )
 
             get_state().disable(chat_id)
+            logger.info(f"🧩SplitTyping {chat_id} 已关闭分段发送。")
             yield CommandReturn(text=f"已关闭分段发送。")

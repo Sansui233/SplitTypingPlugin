@@ -3,21 +3,29 @@
 from __future__ import annotations
 
 import asyncio
+import sys
+from pathlib import Path
 
 from langbot_plugin.api.definition.components.common.event_listener import EventListener
 from langbot_plugin.api.entities import context, events
 from langbot_plugin.api.entities.builtin.platform.message import MessageChain, Plain
-
-from lib.config import get_config
-from lib.split import SplitText
-from lib.state import get_state
 
 
 class DefaultEventListener(EventListener):
     async def initialize(self):
         await super().initialize()
 
+        from pkg.config import get_config
+        from pkg.split import SplitText
+        from pkg.state import get_state
+
         self.split_engine = SplitText()
+
+        def split_text(text: str) -> list:
+            config = get_config()
+            if config.split_mode == "simple":
+                return self.split_engine.simple_split(text)
+            return self.split_engine.split(text)
 
         @self.handler(events.PersonNormalMessageReceived)
         async def person_normal_message_received(ctx: context.EventContext):
@@ -48,7 +56,7 @@ class DefaultEventListener(EventListener):
                 if len(response_text) > config.max_segment_length:
                     return
 
-                parts = self.split_text(response_text)
+                parts = split_text(response_text)
                 if parts:
                     ctx.prevent_default()
                     for i, part in enumerate(parts, 1):
@@ -60,9 +68,3 @@ class DefaultEventListener(EventListener):
                         await asyncio.sleep(typing_delay)
                         if i < len(parts):
                             await asyncio.sleep(config.segment_pause)
-
-    def split_text(self, text: str) -> list:
-        config = get_config()
-        if config.split_mode == "simple":
-            return self.split_engine.simple_split(text)
-        return self.split_engine.split(text)

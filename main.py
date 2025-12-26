@@ -2,15 +2,27 @@
 # Please refer to https://docs.langbot.app/en/plugin/dev/tutor.html for more details.
 from __future__ import annotations
 
-from langbot_plugin.api.definition.plugin import BasePlugin
+import logging
+import sys
+from pathlib import Path
 
-from lib.config import init_config
-from lib.state import init_state
+from langbot_plugin.api.definition.plugin import BasePlugin
 
 
 class SplitTypingRev(BasePlugin):
     async def initialize(self) -> None:
         await super().initialize()
+
+        # Import local modules
+        plugin_path = Path(__file__).parent
+        if str(plugin_path) not in sys.path:
+            sys.path.insert(0, str(plugin_path))
+
+        logging.info(f"🧩SplitTyping Plugin initialized successfully")
+
+        from pkg.config import init_config
+        from pkg.state import init_state
+
         config = self.get_config()
         # Initialize global config and state
         init_config(
