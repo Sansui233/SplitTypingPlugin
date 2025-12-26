@@ -16,23 +16,26 @@ class SplitState:
         default_factory=lambda: defaultdict(asyncio.Lock)
     )
 
-    def is_enabled(self, chat_id: str) -> bool:
+    def is_enabled(self, uid: str) -> bool:
         """Check if split is enabled for a chat."""
-        return self.split_enabled.get(chat_id, False)
+        return self.split_enabled.get(uid, False)
 
-    def enable(self, chat_id: str) -> None:
+    def enable(self, uid: str) -> None:
         """Enable split for a chat."""
-        if chat_id not in self.split_enabled:
-            self.split_enabled[chat_id] = True
+        if uid not in self.split_enabled:
+            self.split_enabled[uid] = True
 
     def disable(self, chat_id: str) -> None:
         """Disable split for a chat."""
         self.split_enabled[chat_id] = False
 
-    def get_lock(self, chat_type: str, chat_id: str) -> asyncio.Lock:
+    def get_lock(self, uid: str) -> asyncio.Lock:
         """Get the typing lock for a chat."""
-        lock_key = f"{chat_type}_{chat_id}"
-        return self.typing_locks[lock_key]
+        return self.typing_locks[uid]
+
+
+def uid(chat_type: str, chat_id: str | int) -> str:
+    return f"{chat_type}_{chat_id}"
 
 
 # Global state instance, initialized in main.py

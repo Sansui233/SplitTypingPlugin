@@ -17,7 +17,7 @@ class DefaultEventListener(EventListener):
 
         from pkg.config import get_config
         from pkg.split import SplitText
-        from pkg.state import get_state
+        from pkg.state import get_state, uid
 
         self.split_engine = SplitText()
 
@@ -30,12 +30,13 @@ class DefaultEventListener(EventListener):
         @self.handler(events.PersonNormalMessageReceived)
         async def person_normal_message_received(ctx: context.EventContext):
             sender_id = ctx.event.sender_id  # type: ignore
-            get_state().enable(sender_id)
+            get_state().enable(uid(ctx.event.launcher_type, sender_id))  # type: ignore
 
         @self.handler(events.GroupNormalMessageReceived)
         async def group_message_received(ctx: context.EventContext):
+            launcher_type = group_id = ctx.event.launcher_type  # type: ignore
             group_id = ctx.event.launcher_id  # type: ignore
-            get_state().enable(group_id)
+            get_state().enable(uid(launcher_type, group_id))
 
         @self.handler(events.NormalMessageResponded)
         async def normal_message_responded(ctx: context.EventContext):
@@ -46,11 +47,11 @@ class DefaultEventListener(EventListener):
             state = get_state()
             config = get_config()
 
-            if not state.is_enabled(chat_id):
+            if not state.is_enabled(uid(chat_type, chat_id)):
                 return
 
             response_text = ctx.event.response_text  # type: ignore
-            lock = state.get_lock(chat_type, chat_id)
+            lock = state.get_lock(uid(chat_type, chat_id))
 
             async with lock:
                 if len(response_text) > config.max_segment_length:

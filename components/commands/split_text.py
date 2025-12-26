@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import logging
-import sys
 from typing import AsyncGenerator
-
-from anyio import Path
 
 from langbot_plugin.api.definition.components.command.command import Command, Subcommand
 from langbot_plugin.api.entities.builtin.command.context import (
@@ -19,7 +16,7 @@ class SplitText(Command):
     async def initialize(self) -> None:
         await super().initialize()
 
-        from pkg.state import get_state
+        from pkg.state import get_state, uid
 
         logger = logging.getLogger("split_typing_plugin")
 
@@ -27,12 +24,17 @@ class SplitText(Command):
         async def sendon(
             self, ctx: ExecuteContext
         ) -> AsyncGenerator[CommandReturn, None]:
-            chat_type = ctx.event.launcher_type  # type: ignore
+            chat_type = ctx.session.launcher_type
             chat_id = (
-                ctx.event.launcher_id if chat_type == "group" else ctx.event.sender_id  # type: ignore
+                ctx.session.launcher_id
+                if chat_type == "group"
+                else ctx.session.sender_id
             )
+            if chat_id is None:
+                logger.error(f"🧩SplitTyping {chat_id} 为空")
+                return
 
-            get_state().enable(chat_id)
+            get_state().enable(uid(chat_type.value, chat_id))
             logger.info(f"🧩SplitTyping {chat_id} 已开启分段发送。")
             yield CommandReturn(text=f"已开启分段发送。")
 
@@ -43,11 +45,20 @@ class SplitText(Command):
         async def sendoff(
             self, ctx: ExecuteContext
         ) -> AsyncGenerator[CommandReturn, None]:
-            chat_type = ctx.event.launcher_type  # type: ignore
+            logger.debug(
+                f"🧩SplitTyping {ctx.session.launcher_type.value}_{ctx.session.launcher_id}_{ctx.session.sender_id}"
+            )
+            chat_type = ctx.session.launcher_type
             chat_id = (
-                ctx.event.launcher_id if chat_type == "group" else ctx.event.sender_id  # type: ignore
+                ctx.session.launcher_id
+                if chat_type == "group"
+                else ctx.session.sender_id
             )
 
-            get_state().disable(chat_id)
+            if chat_id is None:
+                logger.error(f"🧩SplitTyping {chat_id} 为空")
+                return
+
+            get_state().disable(uid(chat_type.value, chat_id))
             logger.info(f"🧩SplitTyping {chat_id} 已关闭分段发送。")
             yield CommandReturn(text=f"已关闭分段发送。")
